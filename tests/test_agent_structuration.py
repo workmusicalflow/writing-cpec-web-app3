@@ -1,9 +1,14 @@
 from src.agents.agent_structuration import StructurationAgent, Specification
 import pytest
+from unittest.mock import MagicMock
 
 @pytest.fixture
 def agent():
-    return StructurationAgent()
+    mock_client = MagicMock()
+    mock_client.generate.return_value = """- Améliorer la description avec plus de détails techniques
+- Ajouter des exigences non fonctionnelles
+- Préciser les contraintes budgétaires"""
+    return StructurationAgent(client=mock_client)
 
 @pytest.fixture
 def sample_specification():

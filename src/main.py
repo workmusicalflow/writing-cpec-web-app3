@@ -1,7 +1,13 @@
 import gradio as gr
 import logging
 from utils.anthropic_client import AnthropicClient
+from utils.openai_client import OpenAIClient
 import structlog
+from dotenv import load_dotenv
+import os
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # Configuration du logging
 logging.basicConfig(
@@ -27,21 +33,23 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Initialisation du client Anthropic
+# Initialisation des clients
 try:
-    client = AnthropicClient()
-    logger.info("Client Anthropic initialisé avec succès")
+    anthropic_client = AnthropicClient()
+    openai_client = OpenAIClient()
+    logger.info("Clients initialisés avec succès")
 except Exception as e:
-    logger.error("Erreur lors de l'initialisation du client Anthropic", error=str(e))
+    logger.error("Erreur lors de l'initialisation des clients", error=str(e))
     raise
 
 def process_specification(
     title: str,
     description: str,
     requirements: str,
-    constraints: str
+    constraints: str,
+    model_choice: str = "anthropic"
 ) -> str:
-    """Traite une spécification avec Claude."""
+    """Traite une spécification avec le modèle choisi."""
     logger.info("Début du traitement de spécification", 
                title=title,
                description_length=len(description),
@@ -67,12 +75,18 @@ def process_specification(
 
         logger.debug("Prompt généré", prompt_length=len(prompt))
 
-        # Appel à l'API Anthropic
-        response = client.generate(
-            prompt=prompt,
-            system_prompt="Vous êtes un expert en spécifications techniques. Fournissez des réponses structurées en Markdown.",
-            model="claude-3-5-sonnet-20241022"
-        )
+        # Appel à l'API choisie
+        if model_choice == "anthropic":
+            response = anthropic_client.generate(
+                prompt=prompt,
+                system_prompt="Vous êtes un expert en spécifications techniques. Fournissez des réponses structurées en Markdown.",
+                model="claude-3-5-sonnet-20241022"
+            )
+        else:
+            response = openai_client.generate(
+                prompt=prompt,
+                system_prompt="Vous êtes un expert en spécifications techniques. Fournissez des réponses structurées en Markdown."
+            )
 
         logger.info("Réponse reçue de l'API Anthropic",
                   response_length=len(response))
@@ -132,6 +146,11 @@ with gr.Blocks(title="Évaluateur de Spécifications", theme=gr.themes.Soft()) a
                 placeholder="Entrez une contrainte par ligne",
                 lines=5
             )
+            model_choice = gr.Radio(
+                choices=["anthropic", "openai"],
+                value="anthropic",
+                label="Modèle à utiliser"
+            )
             submit_btn = gr.Button("Évaluer", variant="primary")
 
         with gr.Column():
@@ -144,16 +163,17 @@ with gr.Blocks(title="Évaluateur de Spécifications", theme=gr.themes.Soft()) a
                     js="(text) => navigator.clipboard.writeText(text)"
                 )
 
-    submit_btn.click(
-        fn=process_specification,
-        inputs=[
-            title_input,
-            description_input,
-            requirements_input,
-            constraints_input
-        ],
-        outputs=evaluation_output
-    )
+        submit_btn.click(
+            fn=process_specification,
+            inputs=[
+                title_input,
+                description_input,
+                requirements_input,
+                constraints_input,
+                model_choice
+            ],
+            outputs=evaluation_output
+        )
 
 if __name__ == "__main__":
     demo.launch(show_api=False)
