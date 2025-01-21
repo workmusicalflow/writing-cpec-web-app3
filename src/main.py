@@ -1,8 +1,39 @@
 import gradio as gr
+import logging
 from utils.anthropic_client import AnthropicClient
+import structlog
+
+# Configuration du logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger()
 
 # Initialisation du client Anthropic
-client = AnthropicClient()
+try:
+    client = AnthropicClient()
+    logger.info("Client Anthropic initialisé avec succès")
+except Exception as e:
+    logger.error("Erreur lors de l'initialisation du client Anthropic", error=str(e))
+    raise
 
 def process_specification(
     title: str,
@@ -11,6 +42,12 @@ def process_specification(
     constraints: str
 ) -> str:
     """Traite une spécification avec Claude."""
+    logger.info("Début du traitement de spécification", 
+               title=title,
+               description_length=len(description),
+               requirements_count=len(requirements.split('\n')),
+               constraints_count=len(constraints.split('\n')))
+
     try:
         # Création du prompt
         prompt = f"""
@@ -28,12 +65,17 @@ def process_specification(
         4. Proposez une version améliorée
         """
 
+        logger.debug("Prompt généré", prompt_length=len(prompt))
+
         # Appel à l'API Anthropic
         response = client.generate(
             prompt=prompt,
             system_prompt="Vous êtes un expert en spécifications techniques. Fournissez des réponses structurées en Markdown.",
             model="claude-3-5-sonnet-20241022"
         )
+
+        logger.info("Réponse reçue de l'API Anthropic",
+                  response_length=len(response))
 
         # Formatage des résultats
         evaluation_text = f"""
@@ -42,9 +84,14 @@ def process_specification(
         {response}
         """
 
+        logger.info("Traitement terminé avec succès")
         return evaluation_text
 
     except Exception as e:
+        logger.error("Erreur lors du traitement de la spécification",
+                   error=str(e),
+                   stack_trace=e.__traceback__)
+        
         error_text = f"""
         ### Erreur lors du traitement
 

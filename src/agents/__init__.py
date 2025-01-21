@@ -1,4 +1,4 @@
 # Agents package initialization
-from .agent_structuration import StructureAgent
+from .agent_structuration import StructurationAgent
 
-__all__ = ["StructureAgent"]
+__all__ = ["StructurationAgent"]

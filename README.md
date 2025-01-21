@@ -1,232 +1,144 @@
 # Specification Redactor and Optimiser Agent AI
 
-Données exemple workflow de départ
+## Description du projet
 
-# Evaluator-Optimizer Workflow
+Ce projet vise à créer un agent IA capable de :
 
-## `main.py` File Content
+1. Évaluer des spécifications techniques
+2. Identifier les points forts et faibles
+3. Proposer des améliorations
+4. Générer des recommandations structurées
 
-```python
-import gradio as gr
-from utils.anthropic_client import AnthropicClient
+## Fonctionnalités principales
 
-# Initialisation du client Anthropic
-client = AnthropicClient()
+- Interface utilisateur intuitive via Gradio
+- Intégration avec l'API Anthropic (Claude 3.5 Sonnet)
+- Gestion robuste des erreurs
+- Logging détaillé pour le débogage
+- Structure de code modulaire
 
-def process_specification(
-    title: str,
-    description: str,
-    requirements: str,
-    constraints: str
-) -> str:
-    """Traite une spécification avec Claude."""
-    try:
-        # Création du prompt
-        prompt = f"""
-        Vous êtes un expert en rédaction de spécifications techniques.
-        Voici une spécification à évaluer et optimiser :
-
-        Titre : {title}
-        Description : {description}
-        Exigences : {requirements}
-        Contraintes : {constraints}
-
-        1. Évaluez cette spécification sur 10 points
-        2. Identifiez 3 points forts
-        3. Identifiez 3 points à améliorer
-        4. Proposez une version améliorée
-        """
-
-        # Appel à l'API Anthropic
-        response = client.generate(
-            prompt=prompt,
-            system_prompt="Vous êtes un expert en spécifications techniques. Fournissez des réponses structurées en Markdown.",
-            model="claude-3-5-sonnet-20241022"
-        )
-
-        # Formatage des résultats
-        evaluation_text = f"""
-        ### Résultat de l'évaluation
-
-        {response}
-        """
-
-        return evaluation_text
-
-    except Exception as e:
-        error_text = f"""
-        ### Erreur lors du traitement
-
-        Une erreur s'est produite lors de l'analyse de votre spécification :
-        - {str(e)}
-
-        Veuillez vérifier vos entrées et réessayer.
-        """
-        return error_text
-
-# Création de l'interface Gradio
-with gr.Blocks(title="Évaluateur de Spécifications", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("""
-    # Évaluateur de Spécifications
-
-    Cet outil vous aide à évaluer vos spécifications techniques.
-    Remplissez le formulaire ci-dessous pour commencer.
-    """)
-
-    with gr.Row():
-        with gr.Column():
-            title_input = gr.Textbox(
-                label="Titre",
-                placeholder="Entrez le titre de votre spécification"
-            )
-            description_input = gr.Textbox(
-                label="Description",
-                placeholder="Décrivez votre projet en détail",
-                lines=5
-            )
-            requirements_input = gr.Textbox(
-                label="Exigences",
-                placeholder="Entrez une exigence par ligne",
-                lines=5
-            )
-            constraints_input = gr.Textbox(
-                label="Contraintes",
-                placeholder="Entrez une contrainte par ligne",
-                lines=5
-            )
-            submit_btn = gr.Button("Évaluer", variant="primary")
-
-        with gr.Column():
-            evaluation_output = gr.Markdown(label="Résultats de l'Évaluation")
-            with gr.Accordion("Options", open=False):
-                copy_btn = gr.Button("📋 Copier les résultats", variant="secondary")
-                copy_btn.click(
-                    None,
-                    inputs=evaluation_output,
-                    js="(text) => navigator.clipboard.writeText(text)"
-                )
-
-    submit_btn.click(
-        fn=process_specification,
-        inputs=[
-            title_input,
-            description_input,
-            requirements_input,
-            constraints_input
-        ],
-        outputs=evaluation_output
-    )
-
-if __name__ == "__main__":
-    demo.launch(show_api=False)
+## Architecture technique
 
 ```
-
-## `AnthropicClient.py` File Content
-
-```python
-from anthropic import Anthropic
-import os
-from typing import Optional
-
-class AnthropicClient:
-    def __init__(self):
-        self.client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-        self.default_model = "claude-3-5-sonnet-20241022"
-
-    def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        model: Optional[str] = None
-    ) -> str:
-        """
-        Génère une réponse à partir du modèle Claude.
-
-        Args:
-        prompt: Le prompt principal
-        system_prompt: Le prompt système optionnel
-        model: Le modèle à utiliser (utilise le modèle par défaut si non spécifié)
-
-        Returns:
-        La réponse générée par le modèle
-        """
-        messages = [{
-            "role": "user",
-            "content": prompt
-        }]
-
-        response = self.client.messages.create(
-            model=model or self.default_model,
-            messages=messages,
-            system=system_prompt,
-            max_tokens=4096
-        )
-
-        return response.content[0].text
+src/
+├── main.py                # Application principale
+├── agents/
+│   ├── agent_structuration.py  # Agent de structuration
+├── utils/
+│   ├── anthropic_client.py     # Client Anthropic
 ```
 
-# DEVBOOK.md
+## Dépendances
 
-## Agents IA pour l'optimisation du workflow
+- openai>=1.0.0
+- pytest>=8.0.0
+- python-dotenv>=1.0.0
+- anthropic>=0.3.0
+- structlog>=23.1.0
 
-### 1. Agent de structuration initiale
+## Installation
 
-- **Objectif** : Générer une structure de base pour la spécification
-- **Entrée** : Brève description du projet
-- **Sortie** : Structure de spécification avec sections prédéfinies
-- **Modèle** : GPT-3.5-turbo
+1. Cloner le dépôt
+2. Créer un environnement virtuel :
 
-### 2. Agent de recherche de bonnes pratiques
+```bash
+python -m venv venv
+source venv/bin/activate
+```
 
-- **Objectif** : Suggérer des bonnes pratiques spécifiques au domaine
-- **Entrée** : Domaine du projet
-- **Sortie** : Liste de bonnes pratiques pertinentes
-- **API** : Semantic Scholar
-- **Modèle** : Claude-3-5-sonnet
+3. Installer les dépendances :
 
-### 3. Agent de vérification de cohérence
+```bash
+pip install -r requirements.txt
+```
 
-- **Objectif** : Vérifier la cohérence interne de la spécification
-- **Entrée** : Spécification complète
-- **Sortie** : Liste d'incohérences et suggestions de corrections
-- **Modèle** : Claude-3-5-sonnet
+4. Configurer les variables d'environnement :
 
-### 4. Agent de génération de tâches
+```bash
+echo "ANTHROPIC_API_KEY=votre_clé_api" > .env
+```
 
-- **Objectif** : Créer une liste de tâches de développement
-- **Entrée** : Spécification complète
-- **Sortie** : Liste de tâches au format Markdown
-- **Modèle** : Claude-3-5-sonnet
+5. Lancer l'application :
 
-### 5. Agent de comparaison avec des exemples
+```bash
+python src/main.py
+```
 
-- **Objectif** : Comparer la spécification à des exemples de bonnes pratiques
-- **Entrée** : Spécification complète et domaine du projet
-- **Sortie** : Analyse comparative et suggestions d'améliorations
-- **Base de données** : Collection d'exemples de spécifications
-- **Modèle** : Claude-3-5-sonnet
+## Utilisation
 
-## Workflow d'évaluation et d'amélioration
+1. Remplir les champs du formulaire :
+   - Titre
+   - Description
+   - Exigences
+   - Contraintes
+2. Cliquer sur "Évaluer"
+3. Consulter les résultats dans le panneau de droite
 
-1. Utiliser l'agent de structuration initiale pour créer un squelette de spécification
-2. Appliquer l'agent de recherche de bonnes pratiques pour enrichir la spécification
-3. Rédiger la spécification détaillée
-4. Utiliser l'agent de vérification de cohérence pour identifier les problèmes potentiels
-5. Appliquer l'agent de comparaison avec des exemples pour améliorer la qualité
-6. Utiliser l'agent de génération de tâches pour créer une liste de tâches initiale
-7. Appliquer la méthode MoSCoW pour catégoriser les tâches
-8. Utiliser la méthode WSJF pour prioriser les tâches
+## Journalisation
 
-## Intégration dans le processus de développement
+Le système utilise structlog pour une journalisation détaillée :
 
-1. Créer des endpoints API pour chaque agent
-2. Développer des composants Gradio pour chaque fonctionnalité
-3. Implémenter un système de workflow pour enchaîner les agents
-4. Ajouter une fonctionnalité permettant aux utilisateurs de choisir les agents à utiliser
+- Niveau INFO pour les opérations principales
+- Niveau DEBUG pour le suivi détaillé
+- Niveau ERROR pour les erreurs critiques
 
-## Suivi et amélioration continue
+Les logs sont formatés en JSON pour une intégration facile avec des systèmes de monitoring.
 
-- Mettre en place des métriques pour évaluer l'efficacité du workflow
-- Organiser des rétrospectives régulières pour identifier les axes d'amélioration
-- Mettre à jour le [DEVBOOK.md](http://devbook.md/) en fonction des retours d'expérience de l'équipe
+## Tests
+
+Le projet inclut des tests unitaires :
+
+- Validation des entrées
+- Gestion des erreurs
+- Intégration avec l'API Anthropic
+
+Pour exécuter les tests :
+
+```bash
+pytest tests/
+```
+
+## Prochaines étapes prioritaires
+
+1. Implémenter l'agent de structuration initiale
+2. Développer l'intégration avec l'API OpenAI
+3. Créer des tests unitaires pour les nouveaux composants
+4. Améliorer la gestion des erreurs et le logging
+5. Documenter les API internes
+
+## Priorisation des tâches
+
+### Méthode MoSCoW
+
+- **Must have** : Fonctionnalités essentielles
+- **Should have** : Fonctionnalités importantes mais non critiques
+- **Could have** : Fonctionnalités souhaitables
+- **Won't have** : Fonctionnalités exclues pour cette version
+
+### Méthode WSJF (Weighted Shortest Job First)
+
+1. Calculer la valeur métier
+2. Évaluer le time-to-market
+3. Estimer la réduction de risque
+4. Calculer le coût du délai
+5. Prioriser les tâches avec le ratio WSJF le plus élevé
+
+## Contribution
+
+1. Créer une nouvelle branche :
+
+```bash
+git checkout -b feature/nouvelle-fonctionnalite
+```
+
+2. Implémenter les modifications
+3. Ajouter des tests unitaires
+4. Soumettre une pull request
+
+## Documentation complète
+
+Consultez le [DEVBOOK.md](DEVBOOK.md) pour une documentation technique détaillée.
+
+## Licence
+
+MIT License - Voir le fichier [LICENSE](LICENSE) pour plus de détails.
