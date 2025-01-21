@@ -1,0 +1,22 @@
+# Fichiers sensibles
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Environnements virtuels
+venv/
+.venv/
+env/
+ENV/
+
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Fichiers de développement
+.idea/
+.vscode/
+.DS_Store

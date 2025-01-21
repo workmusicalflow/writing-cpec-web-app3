@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+setup.py
+src/__init__.py
+src/main.py
+src/agents/__init__.py
+src/agents/agent_structuration.py
+src/utils/__init__.py
+src/utils/anthropic_client.py
+tests/test_agent_structuration.py
+writing_cpec_web_app3.egg-info/PKG-INFO
+writing_cpec_web_app3.egg-info/SOURCES.txt
+writing_cpec_web_app3.egg-info/dependency_links.txt
+writing_cpec_web_app3.egg-info/requires.txt
+writing_cpec_web_app3.egg-info/top_level.txt
