@@ -1,7 +1,7 @@
 from typing import Dict, List
 from dataclasses import dataclass
 import structlog
-from src.utils.openai_client import OpenAIClient
+from utils.openai_client import OpenAIClient
 
 logger = structlog.get_logger(__name__)
 

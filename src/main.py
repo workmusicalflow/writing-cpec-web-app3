@@ -2,6 +2,7 @@ import gradio as gr
 import logging
 from utils.anthropic_client import AnthropicClient
 from utils.openai_client import OpenAIClient
+from agents.agent_generation_taches import AgentGenerationTaches
 import structlog
 from dotenv import load_dotenv
 import os
@@ -57,7 +58,24 @@ def process_specification(
                constraints_count=len(constraints.split('\n')))
 
     try:
-        # Création du prompt
+        # Initialisation des agents
+        task_generator = AgentGenerationTaches()
+        
+        # Génération des tâches
+        specification = {
+            'titre': title,
+            'description': description,
+            'exigences': requirements.split('\n')
+        }
+        
+        tasks = task_generator.generer_taches(specification)
+        
+        if not tasks:
+            raise ValueError("Erreur lors de la génération des tâches")
+            
+        logger.info("Tâches générées avec succès", tasks_length=len(tasks))
+
+        # Création du prompt enrichi
         prompt = f"""
         Vous êtes un expert en rédaction de spécifications techniques.
         Voici une spécification à évaluer et optimiser :
@@ -66,6 +84,9 @@ def process_specification(
         Description : {description}
         Exigences : {requirements}
         Contraintes : {constraints}
+
+        Tâches générées :
+        {tasks}
 
         1. Évaluez cette spécification sur 10 points
         2. Identifiez 3 points forts
